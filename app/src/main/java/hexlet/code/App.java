@@ -16,6 +16,13 @@ public class App {
         String port = System.getenv().getOrDefault("PORT", "7070");
         return Integer.valueOf(port);
     }
+
+    public static String getDataBaseUrl() {
+        String url = System.getenv().getOrDefault("JDBC_DATABASE_URL",
+                "jdbc:h2:mem:project");
+        return url;
+    }
+
     public static void main(String[] args) {
         Javalin app = getApp();
         app.start(getPort());
