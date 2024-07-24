@@ -1,25 +1,35 @@
-@import gg.jte.Content
+@import hexlet.code.NamedRoutes
+@import hexlet.code.dto.BasePage
+@param BasePage page
 
-@param Content content
 
-@template.layout.page(
-content  = @`
-    <h1>Заголовок моего локал-сайта!</h1>
-    <h2>Подзаголовок! Если ты читаешь - пожалуйста, пользуйся</h2>
+@template.layout.page(page = page,
+content = @`
+    <section>
 
-    <h4>Тут ты увидишь:</h4>
-    <ul>
-        <li><a href="/">Главную страницу</a></li>
-        <li><a href="/">Список всех курсов(из прошлого курса)</a></li>
-        <li><a href="/">Список всех сайтов</a></li>
-        <li>А вообще будем анализировать страницы других сайтов</li>
+        <div class="container-fluid bg-dark p-5">
+            <div class="row">
+                <div class="col-md-10 col-lg-8 mx-auto text-white">
+                    <h1 class="display-3 mb-0">Анализатор страниц</h1>
+                    <p class="lead">Бесплатно проверяйте сайты на SEO пригодность</p>
+                    <form action="${NamedRoutes.urlsPath()}" method="post" class="rss-form text-body">
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input id="url-input" autofocus type="text" required name="url" aria-label="url"
+                                           class="form-control w-100" placeholder="ссылка" autocomplete="off">
+                                    <label for="url-input">Ссылка</label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="h-100 btn btn-lg btn-primary px-sm-5">Проверить</button>
+                            </div>
+                        </div>
+                    </form>
+                    <p class="mt-2 mb-0 text-muted">Пример: https://www.example.com</p>
+                </div>
+            </div>
+        </div>
 
-    </ul>
-`
-,
-footer = @`
-    <div class="footer">
-        <a href="https://github.com/Kagawan">профиль на GitHub</a>
-    </div>
-`
-) 
+    </section>
+`)
