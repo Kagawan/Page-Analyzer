@@ -2,22 +2,27 @@ package hexlet.code;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import hexlet.code.model.Url;
 import hexlet.code.repository.BaseRepository;
+import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
 import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;
+import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.format.DateTimeFormatter;
 
 
 import static hexlet.code.App.readResourceFile;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class AppTest {
+    private static MockWebServer mockServer;
     Javalin app;
 
     @BeforeEach
@@ -71,6 +76,26 @@ public class AppTest {
             var url = "  https:/www.example.com";
             var response2 = client.post(NamedRoutes.urlsPath(), "url=" + url);
             assertThat(response2.body().string()).contains("Некорректный URL");
+        });
+    }
+
+    @Test
+    void testCheckUrl() {
+        var url = mockServer.url("/").toString();
+        Url urlForCheck = new Url(url);
+        UrlRepository.save(urlForCheck);
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.post(NamedRoutes.urlsChecksPath(urlForCheck.getId()));
+            assertThat(response.code()).isEqualTo(200);
+            var lastCheck = UrlCheckRepository.find(urlForCheck.getId()).orElseThrow();
+            assertThat(lastCheck.getTitle()).isEqualTo("Example Title");
+            assertThat(lastCheck.getH1()).isEqualTo("Example Domain");
+            assertThat(lastCheck.getDescription()).isEqualTo("");
+
+            var afterPost = client.get(NamedRoutes.urlsPath());
+            assertThat(afterPost.code()).isEqualTo(200);
+            assertThat(afterPost.body().string()).contains(lastCheck.getCreatedAt().toLocalDateTime()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         });
     }
 }
