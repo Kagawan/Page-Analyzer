@@ -51,7 +51,7 @@
     <div class="container-xl">
         <div class="text-center">
             created by
-            <a href="https://github.com/VPactually" target="_blank">Vladislav Pomozov</a>
+            <a href="https://github.com/Kagawan" target="_blank">Rashid</a>
         </div>
     </div>
 </footer>

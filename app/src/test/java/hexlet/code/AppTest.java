@@ -1,81 +1,105 @@
 package hexlet.code;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-import hexlet.code.model.Url;
-import hexlet.code.repository.BaseRepository;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
 import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;
+import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 
+import hexlet.code.model.Url;
 
 import static hexlet.code.App.readResourceFile;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AppTest {
     private static MockWebServer mockServer;
     Javalin app;
 
+    @BeforeAll
+    public static void beforeAll() throws IOException, SQLException {
+        mockServer = new MockWebServer();
+        var mockResponse = new MockResponse().setBody(readResourceFile("fixtures/example.html"));
+        mockServer.enqueue(mockResponse);
+    }
     @BeforeEach
     public final void setUp() throws IOException, SQLException {
         app = App.getApp();
     }
 
-    @BeforeAll
-    public static void beforeAll() throws IOException, SQLException {
-        var hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1;");
-        var dataSource = new HikariDataSource(hikariConfig);
-        var sql = readResourceFile("schema.sql");
-        try (var connection = dataSource.getConnection();
-             var statement = connection.createStatement()) {
-            statement.execute(sql);
-        }
-        BaseRepository.dataSource = dataSource;
+    @AfterAll
+    public static void afterAll() throws IOException {
+        mockServer.shutdown();
     }
 
     @Test
     void testRoot() {
         JavalinTest.test(app, (server, client) -> {
-            var response = client.get("/");
+            var response = client.get(NamedRoutes.rootPath());
             assertThat(response.code()).isEqualTo(200);
             assertThat(response.body().string()).contains("Анализатор страниц");
         });
     }
+
     @Test
-    void testUrlsPath() {
+    void testWrongUrl() {
         JavalinTest.test(app, (server, client) -> {
+            var response = client.post(NamedRoutes.urlsPath(), "url=qweqsdasd.ru");
+            assertThat(response.code()).isEqualTo(400);
+            assertThat(response.body().string()).contains("Некорректный URL");
+        });
+    }
+
+    @Test
+    void testRegisterNewSites() {
+        JavalinTest.test(app, (server, client) -> {
+            var requestBody = "url=http://www.rbc.ru";
+            client.post(NamedRoutes.urlsPath(), requestBody);
             var response = client.get(NamedRoutes.urlsPath());
             assertThat(response.code()).isEqualTo(200);
+            var bodyString = response.body().string();
+
+            assertEquals("http://www.rbc.ru", UrlRepository.find("http://www.rbc.ru").get().getName());
+            assertThat(bodyString).contains("Сайты");
+            assertThat(bodyString).contains("http://www.rbc.ru");
         });
     }
 
     @Test
-    public void testAddUrls() {
+    void testDoubleSite() {
         JavalinTest.test(app, (server, client) -> {
-            var url = "https://www.example.com";
-            var response = client.post(NamedRoutes.urlsPath(), "url=" + url);
+            var requestBody = "url=http://www.rbc.ru";
+            client.post(NamedRoutes.urlsPath(), requestBody);
+            client.post(NamedRoutes.urlsPath(), requestBody);
+            assertThat(UrlRepository.getEntities()).hasSize(1);
+        });
+    }
+
+    @Test
+    void testShowUrl() {
+        JavalinTest.test(app, (server, client) -> {
+            var name = "http://www.rbc.ru";
+            var url = new Url(name);
+            UrlRepository.save(url);
+
+            assertTrue(UrlRepository.find(url.getId()).isPresent());
+            var id = url.getId();
+            var response = client.get(NamedRoutes.urlPath(id));
             assertThat(response.code()).isEqualTo(200);
-            assertThat(response.body().string()).contains(url);
-            assertThat(UrlRepository.find(url).get().getName()).isEqualTo(url);
-        });
-    }
-
-    @Test
-    public void testAddWrongUrl() {
-        JavalinTest.test(app, (server, client) -> {
-            var url = "  https:/www.example.com";
-            var response2 = client.post(NamedRoutes.urlsPath(), "url=" + url);
-            assertThat(response2.body().string()).contains("Некорректный URL");
+            var bodyString = response.body().string();
+            assertThat(bodyString).contains("Сайт:");
+            assertThat(bodyString).contains(name);
+            assertThat(bodyString).contains("Запустить проверку");
         });
     }
 
