@@ -52,6 +52,7 @@ public class App {
              var statement = connection.createStatement()) {
             statement.execute(sql);
         }
+        hikariConfig.setDriverClassName(org.postgresql.Driver.class.getName());
         return dataSource;
     }
 
