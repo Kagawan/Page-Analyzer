@@ -16,7 +16,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
 
@@ -53,7 +52,7 @@ public class App {
              var statement = connection.createStatement()) {
             statement.execute(sql);
         }
-        hikariConfig.setDriverClassName(Driver.class.getCanonicalName());
+        hikariConfig.setDriverClassName(org.postgresql.Driver.class.getName());
         return dataSource;
     }
 
